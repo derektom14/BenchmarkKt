@@ -1,24 +1,24 @@
 package peirce.derek.benchmark.scrabble
 
+import peirce.derek.benchmark.scrabble.count.Count
+import peirce.derek.benchmark.scrabble.count.counts
 import java.util.*
-import java.util.regex.Pattern
+import kotlin.math.min
 
 class KotlinScrabbleImperative(val scrabbleBase: ScrabbleBase) {
 
     private fun nBlanks(word: String): Int {
-        val counts = word.counts()
-        return counts.entries.sumOf { entry: Map.Entry<Char, Int> ->
-            (entry.value - scrabbleAvailableLetters[entry.key - 'A']).coerceAtLeast(0)
+        return word.counts().entries.sumOf { entry: Map.Entry<Char, Count> ->
+            (entry.value.count - scrabbleAvailableLetters[entry.key - 'A']).coerceAtLeast(0)
         }
     }
 
     private fun score2(word: String): Int {
-        val counts = word.counts()
-        return counts.entries
-            .sumOf { entry: Map.Entry<Char, Int> ->
+        return word.counts().entries
+            .sumOf { entry: Map.Entry<Char, Count> ->
                 letterScores[entry.key - 'A'] *
-                        Integer.min(
-                            entry.value,
+                        min(
+                            entry.value.count,
                             scrabbleAvailableLetters[entry.key - 'A']
                         )
             }
@@ -32,21 +32,21 @@ class KotlinScrabbleImperative(val scrabbleBase: ScrabbleBase) {
     }
 
     private fun bonusForDoubleLetter(word: String): Int {
-        var max = 0
         val length = word.length
-        if (length > 6) {
-            max = max.coerceAtLeast(letterScores[word[0] - 'A'])
-            max = max.coerceAtLeast(letterScores[word[1] - 'A'])
-            max = max.coerceAtLeast(letterScores[word[2] - 'A'])
-            max = max.coerceAtLeast(letterScores[word[length - 3] - 'A'])
-            max = max.coerceAtLeast(letterScores[word[length - 2] - 'A'])
-            max = max.coerceAtLeast(letterScores[word[length - 1] - 'A'])
+        return if (length == 0) {
+            0
+        } else if (length > 6) {
+            0.coerceAtLeast(letterScores[word[0] - 'A'])
+                .coerceAtLeast(letterScores[word[1] - 'A'])
+                .coerceAtLeast(letterScores[word[2] - 'A'])
+                .coerceAtLeast(letterScores[word[length - 3] - 'A'])
+                .coerceAtLeast(letterScores[word[length - 2] - 'A'])
+                .coerceAtLeast(letterScores[word[length - 1] - 'A'])
         } else {
-            word.forEach { char ->
-                max = max.coerceAtLeast(letterScores[char - 'A'])
-            }
+            word.maxOf { char ->
+                letterScores[char - 'A']
+            }.coerceAtLeast(0)
         }
-        return max
     }
 
     private inline fun buildHistoOnScore(score: (String) -> Int): TreeMap<Int, MutableList<String>> {
